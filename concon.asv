@@ -1,0 +1,12 @@
+
+clear all, clc;
+syms('C1');
+p =[ 10*C1, 20*C1,     1,     5,     2,     1];
+
+nt=length(p);
+for ii=1:nt
+    for jj=1:nt
+        nti=(nt+1)-ii*jj;
+        p2(nti)=p(ii)*p(jj);
+    end
+end

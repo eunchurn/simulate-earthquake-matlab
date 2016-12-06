@@ -1,0 +1,89 @@
+close all; clear all; clc
+
+eq=char(['elcacc1';'hachi  ';'kobe   ';'mexico ';'north  ']);
+[n,r]=size(eq); g=9.8;
+dt=0.01;Nyf=1/(2*dt);
+fc=6; Wn=fc/Nyf;% Hz (LPF)
+[bf,af]=butter(7,Wn);
+
+% Col.1 : Input Signal
+% Col.2 : HMD Acc.
+% Col.3 : 5th Top
+% Col.4 : 5th Floor
+% Col.5 : 2nd Floor
+% Col.6 : 3rd Floor
+% Col.7 : 4th Floor
+% Col.8 : 2nd Disp.
+cal_coef = [1 g g   2 2 1 1 2.25/9/100];
+sf=[1,1,0.6,0.3,0.3];
+scale=(1./sf);
+
+for jj=1:5 % TR
+    for ii=1:3 % EQ
+        tii=num2str(ii);
+        efile=char([strtrim(eq(ii,:)),'_0',num2str(jj),'.dat']);
+        afile=char([strtrim(eq(ii,:)),'_analysis.dat']);
+        disp(['loading ::: analysis file : ',afile]),adata=load(afile);
+        disp(['loading ::: experiment file : ',efile]),edata=load(efile);
+        % Frequency domain data vector
+        el=length(edata);
+        bint=length(de2bi(el));
+        frnt=zeros(bint,1)'; frnt(bint)=1;
+        fnt=bi2de(frnt);
+        t=[0:dt:(el-1)*dt];
+        ft=[0:dt:(fnt-1)*dt];
+        dhz=(1/dt)/fnt;
+        hz=[0:dhz:(fnt-1)*dhz];
+        znt=1:(fnt/2); zhz=hz(1:(fnt/2));
+        
+        fedata=dtrend(edata)*diag(cal_coef);
+        ffedata(:,1)=fedata(:,1);
+        ffedata(:,2:8)=filtfilt(bf,af,fedata(:,2:8));
+        mdata=[-ffedata(:,5)*scale(ii) -ffedata(:,6)*scale(ii) -ffedata(:,7)*scale(ii) -ffedata(:,4)*scale(ii) ffedata(:,3)*scale(ii) ffedata(:,8)*scale(ii)];
+        fftmdata=fft(mdata(1:fnt,:));
+        fftadata=fft(adata(1:fnt,:));
+        
+%         figure('color',[1 1 1])
+%         subplot(311),plot(t,-ffedata(:,5)*scale(ii),':',t,adata(:,11),'LineWidth',2),title(['1st Story Acc. (m/sec^2) EQ:',strtrim(eq(ii,:)),' TG:',num2str(jj),' Story'])
+%         subplot(312),plot(t,-ffedata(:,6)*scale(ii),':',t,adata(:,12),'LineWidth',2),title(['2nd Story Acc. (m/sec^2) EQ:',strtrim(eq(ii,:)),' TG:',num2str(jj),' Story'])
+%         subplot(313),plot(t,-ffedata(:,7)*scale(ii),':',t,adata(:,13),'LineWidth',2),title(['3rd Story Acc. (m/sec^2) EQ:',strtrim(eq(ii,:)),' TG:',num2str(jj),' Story'])
+%         figure('color',[1 1 1])
+%         subplot(311),plot(t,-ffedata(:,4)*scale(ii),':',t,adata(:,14),'LineWidth',2),title(['4th Story Acc. (m/sec^2) EQ:',strtrim(eq(ii,:)),' TG:',num2str(jj),' Story'])
+%         subplot(312),plot(t,ffedata(:,3)*scale(ii),':',t,adata(:,15),'LineWidth',2),title(['5th Story Acc. (m/sec^2) EQ:',strtrim(eq(ii,:)),' TG:',num2str(jj),' Story'])
+%         subplot(313),plot(t,ffedata(:,8)*scale(ii),':',t,adata(:,1),'LineWidth',2),title(['2nd Story Disp. (m) EQ:',strtrim(eq(ii,:))])
+
+        figure('color',[1 1 1])
+        subplot(221),plot(zhz,abs(fftmdata(znt,1)),':',zhz,abs(fftadata(znt,11)),'LineWidth',2),title(['1st Story Acc. (m/sec^2) EQ:',strtrim(eq(ii,:)),' TG:',num2str(jj),' Story']),xlim([0 5])
+        subplot(222),plot(zhz,abs(fftmdata(znt,2)),':',zhz,abs(fftadata(znt,12)),'LineWidth',2),title(['2nd Story Acc. (m/sec^2) EQ:',strtrim(eq(ii,:)),' TG:',num2str(jj),' Story']),xlim([0 5])
+        subplot(223),plot(zhz,abs(fftmdata(znt,3)),':',zhz,abs(fftadata(znt,13)),'LineWidth',2),title(['3rd Story Acc. (m/sec^2) EQ:',strtrim(eq(ii,:)),' TG:',num2str(jj),' Story']),xlim([0 5])
+        subplot(224),plot(zhz,abs(fftmdata(znt,4)),':',zhz,abs(fftadata(znt,14)),'LineWidth',2),title(['4th Story Acc. (m/sec^2) EQ:',strtrim(eq(ii,:)),' TG:',num2str(jj),' Story']),xlim([0 5]),legend('FE model base excitation','Experimental HMD excitation')
+        saveas(gcf,['emfs\FIG_EQ',num2str(ii),'_TR',num2str(jj),'_1.emf'],'emf')
+        figure('color',[1 1 1])
+        subplot(221),plot(zhz,abs(fftmdata(znt,5)),':',zhz,abs(fftadata(znt,15)),'LineWidth',2),title(['5th Story Acc. (m/sec^2) EQ:',strtrim(eq(ii,:)),' TG:',num2str(jj),' Story']),xlim([0 5])
+        subplot(222),plot(zhz,abs(fftmdata(znt,6)),':',zhz,abs(fftadata(znt,1)),'LineWidth',2),title(['2nd Story Disp. (m) EQ:',strtrim(eq(ii,:))]),xlim([0 5]),legend('FE model base excitation','Experimental HMD excitation')
+        saveas(gcf,['emfs\FIG_EQ',num2str(ii),'_TR',num2str(jj),'_2.emf'],'emf')
+
+        clear ffedata;
+        %     eval(['edata',tii,'=load(efile); adata',tii,'=load(afile);'])
+        %     eval(['t',tii,'=[0:dt:(length(edata',tii,')-1)*dt];'])
+        %     eval(['fedata',tii,'=dtrend(edata',tii,');'])
+        for kk=1:5 % ST
+            rmserr(ii,jj,kk)=std(mdata(:,kk)-adata(:,kk+10));
+            nrmserr(ii,jj,kk)=std(mdata(:,kk)-adata(:,kk+10))/std(adata(:,kk+10));
+            peakerr(ii,jj,kk)=max(abs(mdata(:,kk)-adata(:,kk+10)));
+        end
+    end
+end
+fl=1:5;
+figure('color',[1 1 1])
+cii=0;
+for ii=1:3              % EQ
+    cii=cii+1;
+    xx1=shiftdim(rmserr(ii,1,:),1);xx2=shiftdim(rmserr(ii,2,:),1);xx3=shiftdim(rmserr(ii,3,:),1);xx4=shiftdim(rmserr(ii,4,:),1);xx5=shiftdim(rmserr(ii,5,:),1);
+    subplot(1,3,cii),plot(xx1,fl,':o',xx2,fl,':x',xx3,fl,'--d',xx4,fl,'-v',xx5,fl,'-s'),xlabel('RMS Tracking Error'),ylabel('Story')
+end
+legend('target : 1st Story','target : 2nd Story','target : 3rd Story','target : 4th Story','target : 5th Story')
+% fl=1:5;
+% figure('color',[1 1 1])
+% subplot(1,2,1),plot(rmserr(1,:),fl,rmserr(2,:),fl,rmserr(3,:),fl),legend('El Centro','Hachinohe','Kobe')
+% subplot(1,2,2),plot(peakerr(1,:),fl,peakerr(2,:),fl,peakerr(3,:),fl),legend('El Centro','Hachinohe','Kobe')
